@@ -9,6 +9,32 @@ let records = [];
 let editingRecord = null;
 let showDeleteConfirm = null;
 
+async function apiRequest(path, { method = 'GET', body, authenticated = true } = {}) {
+    const headers = {};
+    if (body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+    }
+    if (authenticated && authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers,
+        ...(body === undefined ? {} : { body: JSON.stringify(body) })
+    });
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+        ? await response.json()
+        : { message: await response.text() };
+
+    if (!response.ok) {
+        throw new Error(data.message || `Request failed (${response.status})`);
+    }
+
+    return data;
+}
+
 // Initialize App
 function init() {
     const token = localStorage.getItem('authToken');
@@ -239,24 +265,21 @@ async function handleLogin(e) {
     const password = document.getElementById('loginPassword').value;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const data = await apiRequest('/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: { email, password },
+            authenticated: false
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            authToken = data.token;
-            localStorage.setItem('authToken', authToken);
-            isLoggedIn = true;
-            navigate('dashboard');
-        } else {
-            alert(data.message || 'Login failed');
+        if (!data.token) {
+            throw new Error('The login response did not include an authentication token.');
         }
+
+        authToken = data.token;
+        localStorage.setItem('authToken', authToken);
+        isLoggedIn = true;
+        navigate('dashboard');
     } catch (error) {
-        alert('Error connecting to server');
+        alert(error.message || 'Unable to connect to the server.');
     }
 }
 
