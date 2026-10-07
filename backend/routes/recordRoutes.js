@@ -5,5 +5,6 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 router.post("/", authMiddleware, recordController.createRecord);
 router.get("/", authMiddleware, recordController.getRecords);
+router.put("/:id", authMiddleware, recordController.updateRecord);
 
 module.exports = router;

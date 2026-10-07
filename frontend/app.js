@@ -227,7 +227,7 @@ function renderRecords() {
                                 <th class="px-4 py-3 font-semibold text-gray-700">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="recordsTable">
                             ${records.map((record) => `
                                 <tr class="border-t">
                                     <td class="px-4 py-3">${escapeHTML(record.title)}</td>
@@ -244,6 +244,7 @@ function renderRecords() {
                 ` : ''}
             </div>
             ${currentPage === 'addRecord' ? renderAddModal() : ''}
+            ${editingRecord ? renderEditModal() : ''}
         </div>
     `;
 }
@@ -307,6 +308,30 @@ function renderAddModal() {
     `;
 }
 
+function renderEditModal() {
+    return `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+                <h3 class="text-2xl font-bold mb-4">Edit Record</h3>
+                <form id="editRecordForm" class="space-y-4">
+                    <div>
+                        <label for="editTitle" class="block text-gray-700 mb-2">Title</label>
+                        <input type="text" id="editTitle" required value="${escapeHTML(editingRecord.title)}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="editDescription" class="block text-gray-700 mb-2">Description</label>
+                        <textarea id="editDescription" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3">${escapeHTML(editingRecord.description)}</textarea>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Save</button>
+                        <button type="button" onclick="closeEditForm()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
 // Form Handlers
 function attachEventListeners() {
     const loginForm = document.getElementById('loginForm');
@@ -322,6 +347,21 @@ function attachEventListeners() {
     const addRecordForm = document.getElementById('addRecordForm');
     if (addRecordForm) {
         addRecordForm.addEventListener('submit', handleAddRecord);
+    }
+
+    const editRecordForm = document.getElementById('editRecordForm');
+    if (editRecordForm) {
+        editRecordForm.addEventListener('submit', handleUpdateRecord);
+    }
+
+    const recordsTable = document.getElementById('recordsTable');
+    if (recordsTable) {
+        recordsTable.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-action="edit"]');
+            if (button) {
+                showEditForm(button.dataset.recordId);
+            }
+        });
     }
 }
 
@@ -385,6 +425,36 @@ function showAddForm() {
 function closeAddForm() {
     currentPage = 'records';
     render();
+}
+
+function showEditForm(recordId) {
+    editingRecord = records.find((record) => record._id === recordId);
+    if (!editingRecord) {
+        return;
+    }
+    render();
+}
+
+function closeEditForm() {
+    editingRecord = null;
+    render();
+}
+
+async function handleUpdateRecord(e) {
+    e.preventDefault();
+    const title = document.getElementById('editTitle').value.trim();
+    const description = document.getElementById('editDescription').value.trim();
+
+    try {
+        await apiRequest(`/records/${encodeURIComponent(editingRecord._id)}`, {
+            method: 'PUT',
+            body: { title, description }
+        });
+        alert('Record updated successfully!');
+        closeEditForm();
+    } catch (error) {
+        alert(error.message || 'Unable to update the record.');
+    }
 }
 
 async function handleAddRecord(e) {
