@@ -21,9 +21,30 @@ exports.createRecord = async (req, res) => {
 
 exports.getRecords = async (req, res) => {
     try {
-        const records = await Record.find({
+        const { search } = req.query;
+
+        let filter = {
             user: req.userId
-        }).sort({
+        };
+
+        if (search) {
+            filter.$or = [
+                {
+                    title: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+                {
+                    description: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                }
+            ];
+        }
+
+        const records = await Record.find(filter).sort({
             createdAt: -1
         });
 
