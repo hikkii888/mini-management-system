@@ -31,6 +31,10 @@ async function apiRequest(path, { method = 'GET', body, authenticated = true } =
         : { message: await response.text() };
 
     if (!response.ok) {
+        if (response.status === 401 && authenticated) {
+            clearSession();
+            navigate('login');
+        }
         throw new Error(data.message || `Request failed (${response.status})`);
     }
 
@@ -415,10 +419,18 @@ async function handleRegister(e) {
     }
 }
 
-function logout() {
+function clearSession() {
     authToken = null;
     isLoggedIn = false;
+    records = [];
+    recordsLoading = false;
+    recordsError = '';
+    editingRecord = null;
     localStorage.removeItem('authToken');
+}
+
+function logout() {
+    clearSession();
     navigate('home');
 }
 
