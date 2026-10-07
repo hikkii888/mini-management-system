@@ -18,3 +18,20 @@ exports.createRecord = async (req, res) => {
         });
     }
 };
+
+exports.getRecords = async (req, res) => {
+    try {
+        const records = await Record.find({
+            user: req.userId
+        }).sort({
+            createdAt: -1
+        });
+
+        res.json(records);
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Failed to get records"
+        });
+    }
+};

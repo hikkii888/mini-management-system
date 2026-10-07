@@ -11,4 +11,10 @@ router.post(
     recordController.createRecord
 );
 
+router.get(
+    "/",
+    authMiddleware,
+    recordController.getRecords
+);
+
 module.exports = router;
