@@ -101,6 +101,7 @@ function renderPage() {
         case 'dashboard':
             return isLoggedIn ? renderDashboard() : renderLogin();
         case 'records':
+        case 'addRecord':
             return isLoggedIn ? renderRecords() : renderLogin();
         default:
             return renderHome();
