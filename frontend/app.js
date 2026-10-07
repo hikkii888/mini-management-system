@@ -306,8 +306,9 @@ function closeAddForm() {
 
 async function handleAddRecord(e) {
     e.preventDefault();
-    const title = document.getElementById('addTitle').value;
-    const description = document.getElementById('addDescription').value;
+
+    const title = document.getElementById('addTitle').value.trim();
+    const description = document.getElementById('addDescription').value.trim();
 
     try {
         const response = await fetch(`${API_BASE_URL}/records`, {
@@ -319,16 +320,19 @@ async function handleAddRecord(e) {
             body: JSON.stringify({ title, description })
         });
 
-        if (response.ok) {
-            alert('Record added successfully!');
-            closeAddForm();
-        } else {
-            alert('Failed to add record');
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.message || 'Failed to add record');
+            return;
         }
+
+        alert('Record added successfully!');
+        document.getElementById('addRecordForm').reset();
+        closeAddForm();
     } catch (error) {
-        alert('Error connecting to server');
+        alert('Error connecting to server. Please try again.');
     }
 }
-
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
