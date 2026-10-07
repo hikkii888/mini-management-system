@@ -458,6 +458,7 @@ async function handleUpdateRecord(e) {
         });
         alert('Record updated successfully!');
         closeEditForm();
+        await loadRecords();
     } catch (error) {
         alert(error.message || 'Unable to update the record.');
     }
@@ -474,6 +475,7 @@ async function handleDeleteRecord(recordId) {
             method: 'DELETE'
         });
         alert('Record deleted successfully!');
+        await loadRecords();
     } catch (error) {
         alert(error.message || 'Unable to delete the record.');
     }
@@ -505,6 +507,7 @@ async function handleAddRecord(e) {
         alert('Record added successfully!');
         document.getElementById('addRecordForm').reset();
         closeAddForm();
+        await loadRecords();
     } catch (error) {
         alert('Error connecting to server. Please try again.');
     }
