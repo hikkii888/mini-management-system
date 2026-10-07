@@ -85,3 +85,32 @@ exports.updateRecord = async (req, res) => {
         });
     }
 };
+
+exports.deleteRecord = async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                message: "Invalid record ID"
+            });
+        }
+
+        const record = await Record.findOneAndDelete({
+            _id: req.params.id,
+            user: req.user.userId
+        });
+
+        if (!record) {
+            return res.status(404).json({
+                message: "Record not found"
+            });
+        }
+
+        res.json({
+            message: "Record deleted successfully"
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error"
+        });
+    }
+};

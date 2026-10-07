@@ -357,9 +357,15 @@ function attachEventListeners() {
     const recordsTable = document.getElementById('recordsTable');
     if (recordsTable) {
         recordsTable.addEventListener('click', (event) => {
-            const button = event.target.closest('button[data-action="edit"]');
-            if (button) {
+            const button = event.target.closest('button[data-action]');
+            if (!button) {
+                return;
+            }
+
+            if (button.dataset.action === 'edit') {
                 showEditForm(button.dataset.recordId);
+            } else if (button.dataset.action === 'delete') {
+                handleDeleteRecord(button.dataset.recordId);
             }
         });
     }
@@ -454,6 +460,22 @@ async function handleUpdateRecord(e) {
         closeEditForm();
     } catch (error) {
         alert(error.message || 'Unable to update the record.');
+    }
+}
+
+async function handleDeleteRecord(recordId) {
+    const record = records.find((item) => item._id === recordId);
+    if (!record || !window.confirm(`Delete "${record.title}"? This cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/records/${encodeURIComponent(recordId)}`, {
+            method: 'DELETE'
+        });
+        alert('Record deleted successfully!');
+    } catch (error) {
+        alert(error.message || 'Unable to delete the record.');
     }
 }
 
