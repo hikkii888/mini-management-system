@@ -6,6 +6,8 @@ let currentPage = 'home';
 let isLoggedIn = false;
 let authToken = null;
 let records = [];
+let recordsLoading = false;
+let recordsError = '';
 let editingRecord = null;
 let showDeleteConfirm = null;
 
@@ -49,6 +51,9 @@ function init() {
 function navigate(page) {
     currentPage = page;
     render();
+    if (page === 'records') {
+        loadRecords();
+    }
 }
 
 // Render Function
@@ -208,12 +213,73 @@ function renderRecords() {
                 <h2 class="text-3xl font-bold text-gray-800">Records</h2>
                 <button onclick="showAddForm()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Add Record</button>
             </div>
-            <div class="bg-white rounded-lg shadow-md p-4">
-                <p class="text-gray-600">Records management coming soon...</p>
+            <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                ${recordsError ? `<p class="p-4 text-red-600" role="alert">${escapeHTML(recordsError)}</p>` : ''}
+                ${recordsLoading ? '<p class="p-4 text-gray-600">Loading records...</p>' : ''}
+                ${!recordsLoading && !recordsError && records.length === 0 ? '<p class="p-4 text-gray-600">No records yet. Add a record to get started.</p>' : ''}
+                ${!recordsLoading && records.length > 0 ? `
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold text-gray-700">Title</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700">Description</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700">Created</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${records.map((record) => `
+                                <tr class="border-t">
+                                    <td class="px-4 py-3">${escapeHTML(record.title)}</td>
+                                    <td class="px-4 py-3 whitespace-pre-wrap">${escapeHTML(record.description)}</td>
+                                    <td class="px-4 py-3">${escapeHTML(formatRecordDate(record.createdAt))}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <button type="button" data-action="edit" data-record-id="${escapeHTML(record._id)}" class="text-blue-600 hover:underline mr-3">Edit</button>
+                                        <button type="button" data-action="delete" data-record-id="${escapeHTML(record._id)}" class="text-red-600 hover:underline">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : ''}
             </div>
             ${currentPage === 'addRecord' ? renderAddModal() : ''}
         </div>
     `;
+}
+
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function formatRecordDate(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+}
+
+async function loadRecords() {
+    recordsLoading = true;
+    recordsError = '';
+    if (currentPage === 'records') {
+        render();
+    }
+
+    try {
+        records = await apiRequest('/records');
+    } catch (error) {
+        recordsError = error.message || 'Unable to load records.';
+    } finally {
+        recordsLoading = false;
+        if (currentPage === 'records') {
+            render();
+        }
+    }
 }
 
 // Add Record Modal
