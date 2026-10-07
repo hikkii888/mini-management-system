@@ -5,6 +5,9 @@ const API_BASE_URL = 'http://127.0.0.1:5000/api';
 let currentPage = 'home';
 let isLoggedIn = false;
 let authToken = null;
+let records = [];
+let editingRecord = null;
+let showDeleteConfirm = null;
 
 // Initialize App
 function init() {
@@ -174,9 +177,38 @@ function renderDashboard() {
 function renderRecords() {
     return `
         <div class="space-y-6">
-            <h2 class="text-3xl font-bold text-gray-800">Records</h2>
+            <div class="flex justify-between items-center">
+                <h2 class="text-3xl font-bold text-gray-800">Records</h2>
+                <button onclick="showAddForm()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Add Record</button>
+            </div>
             <div class="bg-white rounded-lg shadow-md p-4">
                 <p class="text-gray-600">Records management coming soon...</p>
+            </div>
+            ${currentPage === 'addRecord' ? renderAddModal() : ''}
+        </div>
+    `;
+}
+
+// Add Record Modal
+function renderAddModal() {
+    return `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+                <h3 class="text-2xl font-bold mb-4">Add New Record</h3>
+                <form id="addRecordForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Title</label>
+                        <input type="text" id="addTitle" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Description</label>
+                        <textarea id="addDescription" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Add</button>
+                        <button type="button" onclick="closeAddForm()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     `;
@@ -192,6 +224,11 @@ function attachEventListeners() {
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegister);
+    }
+
+    const addRecordForm = document.getElementById('addRecordForm');
+    if (addRecordForm) {
+        addRecordForm.addEventListener('submit', handleAddRecord);
     }
 }
 
@@ -256,5 +293,46 @@ function logout() {
     navigate('home');
 }
 
+// Record Management Functions
+function showAddForm() {
+    currentPage = 'addRecord';
+    render();
+}
+
+function closeAddForm() {
+    currentPage = 'records';
+    render();
+}
+
+async function handleAddRecord(e) {
+    e.preventDefault();
+
+    const title = document.getElementById('addTitle').value.trim();
+    const description = document.getElementById('addDescription').value.trim();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/records`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ title, description })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.message || 'Failed to add record');
+            return;
+        }
+
+        alert('Record added successfully!');
+        document.getElementById('addRecordForm').reset();
+        closeAddForm();
+    } catch (error) {
+        alert('Error connecting to server. Please try again.');
+    }
+}
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
