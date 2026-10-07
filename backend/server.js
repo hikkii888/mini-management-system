@@ -5,10 +5,13 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
 const recordRoutes = require("./routes/recordRoutes");
+const logger = require("./middleware/logger");
+const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
 app.use(cors());
+app.use(logger);
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -19,6 +22,9 @@ app.get("/", (req, res) => {
         message: "Mini Management System API is running"
     });
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 mongoose
     .connect(process.env.MONGO_URI)

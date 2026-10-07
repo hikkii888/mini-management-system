@@ -1,22 +1,34 @@
 const jwt = require("jsonwebtoken");
+const AppError = require("../utils/AppError");
 
 exports.authMiddleware = (req, res, next) => {
-    try {
-        const token = req.header("Authorization")?.replace("Bearer ", "");
+    const authorization = req.header("Authorization");
+    const match = authorization && /^Bearer\s+(.+)$/i.exec(authorization);
 
-        if (!token) {
-            return res.status(401).json({
-                message: "No token provided"
-            });
+    if (!match) {
+        return next(new AppError("A valid bearer token is required", 401));
+    }
+
+    try {
+        const decoded = jwt.verify(match[1], process.env.JWT_SECRET);
+        if (
+            !decoded ||
+            typeof decoded !== "object" ||
+            !decoded.userId ||
+            (decoded.role !== undefined && !["admin", "user"].includes(decoded.role))
+        ) {
+            return next(new AppError("Invalid token", 401));
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
+        req.user = {
+            ...decoded,
+            role: decoded.role || "user"
+        };
         next();
-
     } catch (error) {
-        res.status(401).json({
-            message: "Invalid token"
-        });
+        if (error instanceof jwt.JsonWebTokenError) {
+            return next(new AppError("Invalid token", 401));
+        }
+        next(error);
     }
 };
