@@ -1,68 +1,64 @@
-// API Configuration
 const API_BASE_URL = 'http://127.0.0.1:5000/api';
 
-// State Management
-let currentPage = 'home';
-let isLoggedIn = false;
-let authToken = null;
+const state = {
+    currentPage: 'home',
+    isLoggedIn: false,
+    authToken: localStorage.getItem('authToken') || null,
+    records: [],
+    showRecordForm: false,
+    searchTerm: ''
+};
 
-// Initialize App
 function init() {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        authToken = token;
-        isLoggedIn = true;
+    if (state.authToken) {
+        state.isLoggedIn = true;
     }
     render();
 }
 
-// Navigation
 function navigate(page) {
-    currentPage = page;
+    state.currentPage = page;
     render();
+
+    if (page === 'records' && state.isLoggedIn) {
+        fetchRecords();
+    }
 }
 
-// Render Function
 function render() {
     const app = document.getElementById('app');
     app.innerHTML = `
         ${renderNavbar()}
-        <main class="container mx-auto px-4 py-8">
+        <main class="app-shell">
             ${renderPage()}
         </main>
     `;
     attachEventListeners();
 }
 
-// Navbar Component
 function renderNavbar() {
     return `
-        <nav class="bg-white shadow-md">
-            <div class="container mx-auto px-4">
-                <div class="flex justify-between items-center py-4">
-                    <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="navigate('home')">
-                        Mini Management System
-                    </h1>
-                    <div class="flex space-x-4">
-                        <button onclick="navigate('home')" class="px-4 py-2 rounded hover:bg-gray-100 ${currentPage === 'home' ? 'bg-blue-100 text-blue-600' : ''}">Home</button>
-                        ${isLoggedIn ? `
-                            <button onclick="navigate('dashboard')" class="px-4 py-2 rounded hover:bg-gray-100 ${currentPage === 'dashboard' ? 'bg-blue-100 text-blue-600' : ''}">Dashboard</button>
-                            <button onclick="navigate('records')" class="px-4 py-2 rounded hover:bg-gray-100 ${currentPage === 'records' ? 'bg-blue-100 text-blue-600' : ''}">Records</button>
-                            <button onclick="logout()" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
-                        ` : `
-                            <button onclick="navigate('login')" class="px-4 py-2 rounded hover:bg-gray-100 ${currentPage === 'login' ? 'bg-blue-100 text-blue-600' : ''}">Login</button>
-                            <button onclick="navigate('register')" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600">Register</button>
-                        `}
-                    </div>
+        <header class="topbar">
+            <nav class="navbar">
+                <div class="brand" onclick="navigate('home')">Mini Management System</div>
+                <div class="nav-links">
+                    <button class="nav-btn ${state.currentPage === 'home' ? 'active' : ''}" onclick="navigate('home')">Home</button>
+                    ${state.isLoggedIn ? `
+                        <button class="nav-btn ${state.currentPage === 'dashboard' ? 'active' : ''}" onclick="navigate('dashboard')">Dashboard</button>
+                        <button class="nav-btn ${state.currentPage === 'records' ? 'active' : ''}" onclick="navigate('records')">Records</button>
+                        <button class="danger-btn" onclick="logout()">Logout</button>
+                    ` : `
+                        <button class="nav-btn ${state.currentPage === 'login' ? 'active' : ''}" onclick="navigate('login')">Login</button>
+                        <button class="primary-btn" onclick="navigate('register')">Register</button>
+                    `}
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     `;
 }
 
-// Page Routing
 function renderPage() {
-    switch (currentPage) {
+    switch (state.currentPage) {
         case 'home':
             return renderHome();
         case 'login':
@@ -70,134 +66,275 @@ function renderPage() {
         case 'register':
             return renderRegister();
         case 'dashboard':
-            return isLoggedIn ? renderDashboard() : renderLogin();
+            return state.isLoggedIn ? renderDashboard() : renderLogin();
         case 'records':
-            return isLoggedIn ? renderRecords() : renderLogin();
+            return state.isLoggedIn ? renderRecords() : renderLogin();
         default:
             return renderHome();
     }
 }
 
-// Home Page
 function renderHome() {
     return `
-        <div class="text-center py-16">
-            <h2 class="text-4xl font-bold text-gray-800 mb-4">Welcome to Mini Management System</h2>
-            <p class="text-xl text-gray-600 mb-8">A simple and clean interface to manage your records</p>
-            <div class="space-x-4">
-                ${isLoggedIn ? `
-                    <button onclick="navigate('dashboard')" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-lg">Go to Dashboard</button>
-                    <button onclick="navigate('records')" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg">Manage Records</button>
-                ` : `
-                    <button onclick="navigate('login')" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-lg">Login</button>
-                    <button onclick="navigate('register')" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg">Register</button>
-                `}
+        <section class="page-section">
+            <div class="hero">
+                <h1>Manage your records with clarity.</h1>
+                <p>A simple and clean interface to organize daily records, review activity, and move between login, dashboard, and records with ease.</p>
+                <div class="hero-actions">
+                    ${state.isLoggedIn ? `
+                        <button class="primary-btn" onclick="navigate('dashboard')">Go to Dashboard</button>
+                        <button class="secondary-btn" onclick="navigate('records')">Manage Records</button>
+                    ` : `
+                        <button class="primary-btn" onclick="navigate('login')">Login</button>
+                        <button class="secondary-btn" onclick="navigate('register')">Register</button>
+                    `}
+                </div>
             </div>
-        </div>
+        </section>
     `;
 }
 
-// Login Page
 function renderLogin() {
     return `
-        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-8">
-            <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 mb-2">Email</label>
-                    <input type="email" id="loginEmail" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">Password</label>
-                    <input type="password" id="loginPassword" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your password">
-                </div>
-                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Login</button>
-            </form>
-            <p class="text-center mt-4 text-gray-600">
-                Don't have an account? <button onclick="navigate('register')" class="text-blue-500 hover:underline">Register</button>
-            </p>
-        </div>
+        <section class="page-section">
+            <div class="form-card">
+                <h2 class="form-title">Login</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input id="loginEmail" type="email" class="form-input" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input id="loginPassword" type="password" class="form-input" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="primary-btn" style="width: 100%;">Login</button>
+                </form>
+                <p class="form-footer">
+                    Don’t have an account?
+                    <button class="link-button" type="button" onclick="navigate('register')">Register</button>
+                </p>
+            </div>
+        </section>
     `;
 }
 
-// Register Page
 function renderRegister() {
     return `
-        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-8">
-            <h2 class="text-2xl font-bold text-center mb-6">Register</h2>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 mb-2">Name</label>
-                    <input type="text" id="registerName" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your name">
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">Email</label>
-                    <input type="email" id="registerEmail" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">Password</label>
-                    <input type="password" id="registerPassword" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your password">
-                </div>
-                <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Register</button>
-            </form>
-            <p class="text-center mt-4 text-gray-600">
-                Already have an account? <button onclick="navigate('login')" class="text-blue-500 hover:underline">Login</button>
-            </p>
-        </div>
+        <section class="page-section">
+            <div class="form-card">
+                <h2 class="form-title">Register</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerName">Full Name</label>
+                        <input id="registerName" type="text" class="form-input" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input id="registerEmail" type="email" class="form-input" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input id="registerPassword" type="password" class="form-input" placeholder="Create a password" required>
+                    </div>
+                    <button type="submit" class="secondary-btn" style="width: 100%;">Create Account</button>
+                </form>
+                <p class="form-footer">
+                    Already have an account?
+                    <button class="link-button" type="button" onclick="navigate('login')">Login</button>
+                </p>
+            </div>
+        </section>
     `;
 }
 
-// Dashboard Page
 function renderDashboard() {
     return `
-        <div class="space-y-6">
-            <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Total Records</h3>
-                    <p class="text-4xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Recent Activity</h3>
-                    <p class="text-gray-600">View your recent record updates</p>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Quick Actions</h3>
-                    <button onclick="navigate('records')" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Manage Records</button>
-                </div>
+        <section class="page-section">
+            <div class="section-header">
+                <h2>Dashboard</h2>
+                <button class="primary-btn" onclick="navigate('records')">View Records</button>
             </div>
-        </div>
+
+            <div class="summary-grid">
+                <article class="summary-card">
+                    <h3>Total Records</h3>
+                    <p class="summary-value summary-highlight">${state.records.length || 0}</p>
+                    <span class="summary-note">Live count</span>
+                </article>
+                <article class="summary-card">
+                    <h3>Pending Review</h3>
+                    <p class="summary-value">24</p>
+                    <span class="summary-note">Needs attention</span>
+                </article>
+                <article class="summary-card">
+                    <h3>Active Users</h3>
+                    <p class="summary-value summary-highlight">43</p>
+                    <span class="summary-note">Online now</span>
+                </article>
+            </div>
+
+            <div class="dashboard-grid">
+                <article class="panel">
+                    <h3>Recent Activity</h3>
+                    <ul class="activity-list">
+                        <li class="activity-item"><span>New record created</span><span class="badge">Today</span></li>
+                        <li class="activity-item"><span>Profile updated</span><span class="badge">Yesterday</span></li>
+                        <li class="activity-item"><span>Daily sync completed</span><span class="badge">This week</span></li>
+                    </ul>
+                </article>
+
+                <article class="panel">
+                    <h3>Quick Actions</h3>
+                    <ul class="quick-list">
+                        <li class="quick-item"><span>Add new record</span><button class="ghost-btn" type="button" onclick="openRecordForm()">Open</button></li>
+                        <li class="quick-item"><span>Review pending items</span><button class="ghost-btn" type="button">Check</button></li>
+                        <li class="quick-item"><span>Export report</span><button class="ghost-btn" type="button">Export</button></li>
+                    </ul>
+                </article>
+            </div>
+        </section>
     `;
 }
 
-// Records Page
 function renderRecords() {
+    const rows = getFilteredRecords().map((record) => `
+        <tr>
+            <td>${record.title || 'Untitled Record'}</td>
+            <td>${record.description || 'No description'}</td>
+            <td>
+                <div class="record-actions">
+                    <button class="inline-btn edit" type="button">Edit</button>
+                    <button class="inline-btn delete" type="button">Delete</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
     return `
-        <div class="space-y-6">
-            <h2 class="text-3xl font-bold text-gray-800">Records</h2>
-            <div class="bg-white rounded-lg shadow-md p-4">
-                <p class="text-gray-600">Records management coming soon...</p>
+        <section class="page-section">
+            <div class="section-header">
+                <h2>Records</h2>
+                <button class="primary-btn" type="button" onclick="openRecordForm()">Add Record</button>
+            </div>
+
+            <div class="table-card">
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input id="recordSearch" class="search-input" type="search" value="${state.searchTerm}" placeholder="Search records..." aria-label="Search records">
+                    </div>
+                    <button class="secondary-btn" type="button">Filter</button>
+                </div>
+
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows || '<tr><td colspan="3" class="empty-state">No records found.</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+
+            ${state.showRecordForm ? renderRecordForm() : ''}
+        </section>
+    `;
+}
+
+function renderRecordForm() {
+    return `
+        <div class="modal-backdrop" onclick="closeRecordForm()">
+            <div class="modal-box" onclick="event.stopPropagation()">
+                <h3>Add New Record</h3>
+                <form id="recordForm">
+                    <div class="form-group">
+                        <label for="recordTitle">Title</label>
+                        <input id="recordTitle" type="text" class="form-input" placeholder="Enter title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recordDescription">Description</label>
+                        <textarea id="recordDescription" class="form-textarea" rows="4" placeholder="Enter description" required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="primary-btn">Save</button>
+                        <button type="button" class="ghost-btn" onclick="closeRecordForm()">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     `;
 }
 
-// Form Handlers
 function attachEventListeners() {
     const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
+    if (registerForm) registerForm.addEventListener('submit', handleRegister);
+
+    const recordForm = document.getElementById('recordForm');
+    if (recordForm) recordForm.addEventListener('submit', handleRecordSubmit);
+
+    const recordSearch = document.getElementById('recordSearch');
+    if (recordSearch) {
+        recordSearch.addEventListener('input', (event) => {
+            state.searchTerm = event.target.value.trim().toLowerCase();
+            render();
+        });
     }
 }
 
-// Authentication Functions
-async function handleLogin(e) {
-    e.preventDefault();
+function getFilteredRecords() {
+    if (!state.searchTerm) {
+        return state.records;
+    }
+
+    return state.records.filter((record) => {
+        const title = (record.title || '').toLowerCase();
+        const description = (record.description || '').toLowerCase();
+        return title.includes(state.searchTerm) || description.includes(state.searchTerm);
+    });
+}
+
+function openRecordForm() {
+    state.showRecordForm = true;
+    render();
+}
+
+function closeRecordForm() {
+    state.showRecordForm = false;
+    render();
+}
+
+async function fetchRecords() {
+    if (!state.isLoggedIn || !state.authToken) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/records`, {
+            headers: {
+                'Authorization': `Bearer ${state.authToken}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to fetch records');
+        }
+
+        state.records = Array.isArray(data) ? data : [];
+        render();
+    } catch (error) {
+        alert(error.message || 'Unable to load records from the server.');
+    }
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
@@ -211,20 +348,22 @@ async function handleLogin(e) {
         const data = await response.json();
 
         if (response.ok) {
-            authToken = data.token;
-            localStorage.setItem('authToken', authToken);
-            isLoggedIn = true;
-            navigate('dashboard');
+            state.authToken = data.token;
+            localStorage.setItem('authToken', state.authToken);
+            state.isLoggedIn = true;
+            state.currentPage = 'dashboard';
+            await fetchRecords();
+            render();
         } else {
             alert(data.message || 'Login failed');
         }
     } catch (error) {
-        alert('Error connecting to server');
+        alert('Unable to connect to the server.');
     }
 }
 
-async function handleRegister(e) {
-    e.preventDefault();
+async function handleRegister(event) {
+    event.preventDefault();
     const name = document.getElementById('registerName').value;
     const email = document.getElementById('registerEmail').value;
     const password = document.getElementById('registerPassword').value;
@@ -239,22 +378,64 @@ async function handleRegister(e) {
         const data = await response.json();
 
         if (response.ok) {
-            alert('Registration successful! Please login.');
-            navigate('login');
+            alert('Registration successful! Please log in.');
+            state.currentPage = 'login';
+            render();
         } else {
             alert(data.message || 'Registration failed');
         }
     } catch (error) {
-        alert('Error connecting to server');
+        alert('Unable to connect to the server.');
+    }
+}
+
+async function handleRecordSubmit(event) {
+    event.preventDefault();
+
+    const title = document.getElementById('recordTitle').value.trim();
+    const description = document.getElementById('recordDescription').value.trim();
+
+    if (!title || !description) {
+        alert('Please fill in both title and description.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/records`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.authToken}`
+            },
+            body: JSON.stringify({ title, description })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Record creation failed');
+        }
+
+        state.records.unshift({
+            title,
+            description,
+            _id: data.record?._id || Date.now().toString()
+        });
+
+        closeRecordForm();
+        render();
+    } catch (error) {
+        alert(error.message || 'Unable to save the record.');
     }
 }
 
 function logout() {
-    authToken = null;
-    isLoggedIn = false;
+    state.authToken = null;
+    state.isLoggedIn = false;
+    state.records = [];
+    state.currentPage = 'home';
     localStorage.removeItem('authToken');
-    navigate('home');
+    render();
 }
 
-// Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
