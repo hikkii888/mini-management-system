@@ -290,22 +290,15 @@ async function handleRegister(e) {
     const password = document.getElementById('registerPassword').value;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        await apiRequest('/auth/register', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: { name, email, password },
+            authenticated: false
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert('Registration successful! Please login.');
-            navigate('login');
-        } else {
-            alert(data.message || 'Registration failed');
-        }
+        alert('Registration successful! Please login.');
+        navigate('login');
     } catch (error) {
-        alert('Error connecting to server');
+        alert(error.message || 'Unable to connect to the server.');
     }
 }
 
